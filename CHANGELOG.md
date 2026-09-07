@@ -47,3 +47,23 @@ DOTween 백엔드 패키지 뼈대.
   방치형에서 그 경고가 쌓이면 콘솔을 덮는다
 - `Cancel`은 `Kill(false)` — 취소는 "중간에 끊겼다"이지 "끝났다"가 아니다.
   `true`로 두면 마지막 값이 한 번 더 적용돼 스코프의 원상 복구와 싸운다
+
+부트스트랩.
+
+- `MotionDoTweenBootstrap.Apply(MotionPlayer)` — 그래프의 `UseUnscaledTime`에 맞는
+  러너 인스턴스를 꽂는다. 그래프를 갈아 끼운 뒤에는 다시 불러야 한다
+- **`Application.isPlaying`일 때만 꽂는다.** DOTween의 업데이트 루프는 런타임에
+  만들어지는 MonoBehaviour라 에디트 모드에서 돌지 않는다. 프리뷰에 DOTween 핸들이
+  걸리면 `IsDone`이 영원히 false가 되어 프리뷰가 멈춘 채 끝나지 않는다.
+  에디터 프리뷰는 언제나 내장 러너를 쓴다
+- `MotionDoTweenBootstrap.ApplyToLoadedScenes()` — 로드된 씬 전체를 훑는다.
+  나중에 만들어지는 플레이어(풀·UiService가 로드하는 팝업)는 잡지 못한다
+- `MotionDoTweenScope` — 프리팹에 붙이는 컴포넌트. 활성화될 때마다 꽂는다.
+  **`[DefaultExecutionOrder(-100)]`이 이 컴포넌트의 핵심이다** — `MotionPlayer.OnEnable`은
+  `PlayOnEnable`이 켜져 있으면 그 자리에서 `Start`를 발사하고, 발사는 노드의 `Play`를
+  동기로 부른다. 노드가 러너를 읽는 시점이 바로 거기라, 실행 순서를 앞당기지 않으면
+  첫 연출만 조용히 내장 러너로 도는 어긋남이 생긴다
+- `ApplyToLoadedScenes`의 `FindObjectsByType` 호출을 `#pragma warning disable 618`로
+  감쌌다. 6000.5에서 이 오버로드에 Obsolete가 붙었지만 대체 오버로드는 6000.5에
+  새로 생긴 것이라 이 패키지의 최소 버전(6000.0)에는 없다. 6000.3에서 `CS1503`으로
+  확인했다
