@@ -51,7 +51,9 @@ namespace Juahn.UiMotion.DoTween
 
             if (onEased == null)
             {
-                // 진행률이 필요 없는 경우(Delay 등). 그래도 시간은 흘러야 한다.
+                // 진행률이 필요 없는 경우. 인터페이스 계약이 null을 허용하므로 막아 두지만
+                // 현재 이 경로를 타는 노드는 없다 — Delay는 코어에 있어 트윈 러너를 모르고
+                // MotionHandle.FromTimer를 직접 쓴다.
                 Tweener empty = DOVirtual.Float(0f, 1f, duration, DoNothing)
                     .SetEase(Ease.Linear)
                     .SetUpdate(_unscaled);
