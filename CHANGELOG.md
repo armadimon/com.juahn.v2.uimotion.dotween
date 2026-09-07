@@ -27,3 +27,23 @@ DOTween 백엔드 패키지 뼈대.
 - CI 게이트 — 매니페스트 형식 · DOTween을 의존성에 적지 않았는지 · 런타임
   asmdef와 그 참조 · `UIMOTION_DOTWEEN` 제약과 `DOTween.dll` 참조 · `Runtime`
   폴더 존재 · `.meta` 누락 · GUID 중복
+
+백엔드 본체.
+
+- `DoTweenRunner : IMotionTweenRunner` — `DOVirtual.Float`으로 이징된 진행률을
+  흘린다. 시간 스케일이 다른 두 인스턴스(`Unscaled` · `Scaled`)를 미리 만들어 둔다.
+  러너 인터페이스가 시간 스케일을 나르지 않고 DOTween이 스코프의 델타를 보지
+  않으므로, 스케일은 인스턴스가 정할 수밖에 없다
+- **핸들의 `Tick`은 아무것도 하지 않는다.** DOTween은 자기 업데이트 루프에서
+  스스로 진행한다. 여기서 델타를 더하면 시간이 두 번 흐른다
+- 지속시간 0은 러너가 직접 처리한다 — `onEased(1f)` 한 번 뒤 `MotionHandle.Completed`.
+  DOTween에 0짜리 트윈을 맡기면 콜백이 이번 프레임에 오지 않거나 아예 오지 않는다
+- **완료를 트윈 상태가 아니라 `OnComplete`/`OnKill` 콜백의 플래그로 판정한다.**
+  DOTween은 트윈을 풀링한다. 끝난 트윈은 풀로 돌아가고 다음 요청이 같은 인스턴스를
+  재사용하므로, 핸들이 참조를 계속 들고 있으면 `IsActive()`가 도로 true가 되어
+  "끝났다"가 뒤집히고 `Cancel`이 남의 트윈을 죽인다. 콜백에서 참조를 즉시 놓아
+  풀에 돌아간 인스턴스를 두 번 다시 만지지 않는다
+- `IsComplete()`를 부르지 않는다 — 죽은 트윈에 부르면 DOTween이 경고를 낸다.
+  방치형에서 그 경고가 쌓이면 콘솔을 덮는다
+- `Cancel`은 `Kill(false)` — 취소는 "중간에 끊겼다"이지 "끝났다"가 아니다.
+  `true`로 두면 마지막 값이 한 번 더 적용돼 스코프의 원상 복구와 싸운다
