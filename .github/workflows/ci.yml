@@ -1,0 +1,107 @@
+name: package-validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate package.json is valid JSON
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+          echo "package.json is valid JSON"
+
+      - name: Check required package fields
+        run: |
+          node -e "
+          const p = JSON.parse(require('fs').readFileSync('package.json','utf8'));
+          for (const k of ['name','version','unity','license']) {
+            if (!p[k]) { console.error('missing field: ' + k); process.exit(1); }
+          }
+          if (!p.name.startsWith('com.juahn.v2.')) { console.error('name must start with com.juahn.v2.'); process.exit(1); }
+          if (!p.dependencies || !p.dependencies['com.juahn.v2.uimotion']) {
+            console.error('must depend on com.juahn.v2.uimotion'); process.exit(1);
+          }
+          if (p.dependencies['com.demigiant.dotween']) {
+            console.error('DOTween은 에셋스토어 플러그인이다. UPM 의존성에 적으면 안 된다'); process.exit(1);
+          }
+          console.log('package fields OK: ' + p.name + '@' + p.version);
+          "
+
+      - name: Check assembly definition present and runtime
+        run: |
+          if ! find Runtime -name '*.asmdef' | grep -q . ; then
+            echo "no Runtime asmdef found"; exit 1
+          fi
+          node -e "
+          const fs = require('fs');
+          const path = require('child_process').execSync(\"find Runtime -name '*.asmdef'\").toString().trim().split('\n')[0];
+          const a = JSON.parse(fs.readFileSync(path,'utf8'));
+          if (a.includePlatforms && a.includePlatforms.length > 0) {
+            console.error('백엔드는 런타임 어셈블리다. includePlatforms를 비워 둔다'); process.exit(1);
+          }
+          const need = ['juahn.v2.UiMotion', 'juahn.v2.UiMotion.Core'];
+          for (const r of need) {
+            if (!a.references || a.references.indexOf(r) < 0) {
+              console.error('asmdef must reference ' + r); process.exit(1);
+            }
+          }
+          console.log('asmdef OK: ' + a.name);
+          "
+
+      - name: Require the UIMOTION_DOTWEEN define constraint
+        run: |
+          # 이것이 빠지면 DOTween이 없는 프로젝트에서 어셈블리가 컴파일을 시도해
+          # 그 프로젝트 전체가 깨진다. defineConstraints가 이 패키지의 안전장치다.
+          node -e "
+          const fs = require('fs');
+          const path = require('child_process').execSync(\"find Runtime -name '*.asmdef'\").toString().trim().split('\n')[0];
+          const a = JSON.parse(fs.readFileSync(path,'utf8'));
+          if (!a.defineConstraints || a.defineConstraints.indexOf('UIMOTION_DOTWEEN') < 0) {
+            console.error('asmdef의 defineConstraints에 UIMOTION_DOTWEEN이 있어야 합니다'); process.exit(1);
+          }
+          if (!a.overrideReferences || !a.precompiledReferences || a.precompiledReferences.indexOf('DOTween.dll') < 0) {
+            console.error('overrideReferences: true와 precompiledReferences의 DOTween.dll이 있어야 합니다'); process.exit(1);
+          }
+          console.log('define constraint OK: UIMOTION_DOTWEEN');
+          "
+
+      - name: Require the Runtime folder
+        run: |
+          # 이 패키지는 런타임 백엔드다. Runtime 폴더가 없으면 규약이 깨진 것이다.
+          if [ ! -d Runtime ]; then echo "이 패키지에는 Runtime 폴더가 있어야 합니다"; exit 1; fi
+          echo "runtime backend OK"
+
+      - name: Check every imported file has a .meta
+        run: |
+          missing=0
+          for f in $(git ls-files | grep -v '\.meta$' | grep -v '^\.github/' | grep -v '~/'); do
+            if [ ! -e "$f.meta" ]; then echo "meta 없음: $f"; missing=1; fi
+          done
+          if [ "$missing" = "1" ]; then exit 1; fi
+          echo "meta 파일 전부 있음"
+
+      - name: Check for duplicate meta GUIDs
+        run: |
+          dups=$(git ls-files '*.meta' | xargs grep -h '^guid:' | sort | uniq -d)
+          if [ -n "$dups" ]; then echo "GUID 중복: $dups"; exit 1; fi
+          echo "GUID 중복 없음"
+
+      - name: Note backend compile gate
+        run: |
+          # 이 백엔드는 DOTween.dll을 참조하는데 그것은 에셋스토어 유료 에셋이라
+          # 재배포할 수 없다. Unity의 매니지드 DLL도 마찬가지다. 그래서 컴파일
+          # 검증은 CI가 아니라 로컬 게이트다:
+          #
+          #   ./Tools~/compile-check/run.sh
+          #
+          if [ ! -x Tools~/compile-check/run.sh ]; then
+            echo "Tools~/compile-check/run.sh가 없거나 실행 권한이 없습니다"; exit 1
+          fi
+          echo "백엔드 컴파일 게이트가 제자리에 있습니다 (로컬 실행)"

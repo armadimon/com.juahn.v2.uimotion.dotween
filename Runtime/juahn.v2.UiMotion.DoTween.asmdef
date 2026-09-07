@@ -1,0 +1,21 @@
+{
+    "name": "juahn.v2.UiMotion.DoTween",
+    "rootNamespace": "Juahn.UiMotion.DoTween",
+    "references": [
+        "juahn.v2.UiMotion",
+        "juahn.v2.UiMotion.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "DOTween.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UIMOTION_DOTWEEN"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    DOTween 백엔드를 Unity 에디터 없이 컴파일한다.
+
+    런타임 패키지의 소스와, 소비자 프로젝트가 들고 있는 DOTween.dll을 참조한다.
+    DOTween은 유료 에셋이라 이 저장소에 넣을 수 없으므로 이 검사는 CI가 아니라
+    로컬 게이트다.
+
+    UnityManaged / UnityUgui / RuntimePackage / DoTweenDll 경로는 run.sh가 넘긴다.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>UiMotion.DoTween.CompileCheck</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>CS0649;CS0169;CS0414</NoWarn>
+    <!--
+      asmdef의 defineConstraints는 이 프로젝트가 읽지 않는다. 여기서 명시하지 않으면
+      Unity에서는 정의가 없을 때 어셈블리가 통째로 빠지는데 게이트는 그냥 컴파일해
+      두 쪽의 조건이 어긋난다.
+    -->
+    <DefineConstants>$(DefineConstants);UIMOTION_DOTWEEN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RuntimePackage)/Runtime/Core/**/*.cs" LinkBase="Core" />
+    <Compile Include="$(RuntimePackage)/Runtime/Unity/**/*.cs" LinkBase="Runtime" />
+    <Compile Include="../../Runtime/**/*.cs" LinkBase="Backend" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Unity.Scripting">
+      <HintPath>$(UnityManaged)/Unity.Scripting.dll</HintPath><Private>false</Private>
+    </Reference>
+    <!--
+      통짜 파사드. DOTween의 SetEase 오버로드 하나가 AnimationCurve를 받는데
+      그 타입이 이 어셈블리에도 들어 있어, 없으면 CS0012로 깨진다.
+    -->
+    <Reference Include="UnityEngine">
+      <HintPath>$(UnityManaged)/UnityEngine.dll</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManaged)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(UnityManaged)/UnityEngine.UIModule.dll</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(UnityManaged)/UnityEngine.AnimationModule.dll</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(UnityManaged)/UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(UnityManaged)/UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(UnityUgui)</HintPath><Private>false</Private>
+    </Reference>
+    <Reference Include="DOTween">
+      <HintPath>$(DoTweenDll)</HintPath><Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
