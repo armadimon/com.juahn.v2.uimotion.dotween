@@ -89,3 +89,9 @@ DOTween 백엔드 패키지 뼈대.
 - `docs/unity-verification.md` — 컴파일 게이트가 지키지 못하는 동작 확인 목록.
   프리뷰가 걸리는 실패, 풀 재사용으로 연출이 멈춰 서는 실패, 첫 연출만 내장 러너로
   도는 실패를 각각 "어떻게 눈에 띄는가"와 함께 적었다
+- 런타임 패키지의 설계 스펙 3.4를 이 패키지의 실제 구현에 맞췄다. 스펙은 `versionDefines`로
+  DOTween이 없으면 컴파일에서 빠진다고 적고 있었는데 **그것은 동작하지 않는다** —
+  DOTween이 UPM 패키지가 아니라 걸 이름이 없다. 실제로 쓴 `defineConstraints` +
+  `overrideReferences` + `precompiledReferences: ["DOTween.dll"]`과, 그 대가인
+  조용한 실패, 그리고 **에디터 프리뷰에서 이 백엔드를 쓰지 않는 이유**가 스펙에 들어갔다.
+  런타임 패키지 README에도 두 단계 설치와 `UIMOTION_DOTWEEN` 심볼 경고가 실렸다
